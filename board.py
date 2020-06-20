@@ -5,6 +5,7 @@ import math
 import pandas as pd
 import time
 from alpha_beta_pruning import static, children, moves, minimax, best_move, moves, Q_children
+from random import choice
 
 # Constants
 BLUE = (0, 0, 255)
@@ -200,7 +201,7 @@ class Connect4:
 
                 if eps < 0.1:
                     # Exploration
-                    action = coups[np.random.randint(0, len(coups))]
+                    action = choice(list(coups))
                     while m == -np.inf:
                         for i in fils.keys():
                             try:
