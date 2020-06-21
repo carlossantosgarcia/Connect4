@@ -2,7 +2,7 @@ from board import *
 from subprocess import PIPE, Popen
 from datetime import datetime
 
-GAMES = 100
+GAMES = 80
 
 
 def write_games(n_games):
