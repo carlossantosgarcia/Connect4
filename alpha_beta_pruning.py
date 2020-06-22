@@ -8,10 +8,8 @@ def static(Connect4):
     '''Evalue statiquement un plateau de jeu'''
     S = 0
     signe = {1: 1, 2: -1}
-
     good_positions = [{'1110', '1101', '1011', '0111'},
                       {'2220', '2202', '2022', '0222'}]
-
     win_positions = ['1111', '2222']
 
     for piece in [1, 2]:
@@ -65,56 +63,57 @@ def static(Connect4):
 
 
 def children(Connect4):
-    '''Renvoie un dictionnaire {coups:fils_obtenu}'''
-    a = {}
-    for i in range(Connect4.cols):
-        if Connect4.move_is_valid(i):
+    '''Returns a dictionnary { move:obtained_child }'''
+    dict_children = {}
+    for col in range(Connect4.cols):
+        if Connect4.move_is_valid(col):
             Child = copy.deepcopy(Connect4)
-            r = Child.get_available_row(i)
+            row = Child.get_available_row(col)
             children_piece = Connect4.turn + 1
-            Child.play_move(r, i, children_piece)
+            Child.play_move(row, col, children_piece)
             Child.turn = 1 - Connect4.turn
             if Child.check_wins(children_piece):
                 Child.game_over = True
-            a[str(i)] = Child
-    if a == {} and not Connect4.game_over:
+            dict_children[str(col)] = Child
+    if not dict_children and not Connect4.game_over:
         Connect4.game_over = True
-    return a
+    return dict_children
 
 
 def Q_children(Connect4):
-    '''Renvoie un dictionnaire {coups:fils_obtenu}
+    '''Returns a dictionnary { move:obtained_child }
 
-    Prends en compte le coup de minimax entre deux coups de notre agent
+    Takes into account Minimax's move in between.
     '''
-    a = {}
-    for i in range(Connect4.cols):
-        if Connect4.move_is_valid(i):
+    dict_children = {}
+    minimax_moves = {}
+    for col in range(Connect4.cols):
+        if Connect4.move_is_valid(col):
             Child = copy.deepcopy(Connect4)
-            r = Child.get_available_row(i)
+            row = Child.get_available_row(col)
             children_piece = Connect4.turn + 1
-            Child.play_move(r, i, children_piece)
+            Child.play_move(row, col, children_piece)
             Child.turn = 1 - Connect4.turn
             if Child.check_wins(children_piece):
                 Child.game_over = True
             else:
-                col = best_move(Child)
-                # Child.print_Connect4()
-                row = Child.get_available_row(col)
+                col2 = best_move(Child)
+                minimax_moves[str(col)] = col2
+                row2 = Child.get_available_row(col2)
                 piece = Child.turn + 1
-                Child.play_move(row, col, piece)
+                Child.play_move(row2, col2, piece)
                 Child.turn = 1 - Connect4.turn
                 if Child.check_wins(piece):
                     Child.game_over = True
 
-            a[str(i)] = Child
-    if a == {} and not Connect4.game_over:
+            dict_children[str(col)] = Child
+    if not dict_children and not Connect4.game_over:
         Connect4.game_over = True
-    return a
+    return dict_children, minimax_moves
 
 
 def moves(Connect4):
-    '''Retourne une liste des coups possibles pour le jeu donné'''
+    '''Returns an array of available moves from current state'''
     L = set()
     for i in range(Connect4.cols):
         if Connect4.move_is_valid(i):
@@ -125,7 +124,7 @@ def moves(Connect4):
 
 
 def minimax(Connect4, depth, alpha, beta, maximizingPlayer=None):
-    '''Retourne le meilleur score possible atteignable depuis la racine pour le joueur donné'''
+    '''Returns best possible score obtained from the root'''
     if maximizingPlayer == None:
         if not Connect4.turn:
             maximizingPlayer = True
@@ -157,16 +156,17 @@ def minimax(Connect4, depth, alpha, beta, maximizingPlayer=None):
 
 
 def best_move(Connect4):
-    '''Renvoie le meilleur coup à jouer depuis une position en suivant l'algorithme minimax'''
-    # Par convention, on maximise le score pour le joueur 1, ie turn = 0
+    '''Returns best possible move from current state, based on minimax algorithm'''
+    # Player 1 has here turn 0 and plays as MAX
     if not Connect4.game_over:
         coups = moves(Connect4)
         if not Connect4.turn:
             # Turn = 0
             scores = [-float('inf')]*Connect4.cols
         else:
-            #Turn = 1
+            # Turn = 1
             scores = [float('inf')]*Connect4.cols
+
         fils = children(Connect4)
         for i in fils.keys():
             scores[int(i)] = minimax(fils[i], 3, -
@@ -179,17 +179,32 @@ def best_move(Connect4):
                 scores[i] = float('nan')
 
         if Connect4.turn == 0:
-            # On maximise alors le score des children
-            if max(scores) == int(np.nanmean(scores)):
-                if not max(scores) and 3 in coups:
-                    move = 3
+            # Children score is then maximized
+            if abs(np.nanmean(scores)) != float('inf'):
+                if max(scores) == int(np.nanmean(scores)):
+                    if not max(scores) and 3 in coups:
+                        move = 3
+                        return move
+                    else:
+                        move = choice(list(coups))
+                        return move
                 else:
-                    move = choice(list(coups))
+                    move = hyp_move
+                    return move
             else:
-                move = hyp_move
-            return move
+                Connect4.print_board()
+                print('Coups', coups)
+                print('Scores', scores)
+                print('Game over', Connect4.game_over)
+                bug_file = open('bug_reports.txt', 'a')
+                bug_file.write('Coups: '+str(list(coups))+'\n')
+                bug_file.write('Scores: '+str(scores)+'\n')
+                bug_file.write('Board: '+Connect4.board_to_string()+'\n')
+                bug_file.write('Game Over: ' + str(Connect4.game_over + '\n'))
+                bug_file.close()
+                move = choice(list(coups))
+                return move
         else:
-            # On minimise le score des children
+            # Children score is minimized
             move = scores.index(min(scores))
             return move
-    return None

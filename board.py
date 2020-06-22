@@ -31,6 +31,7 @@ class Connect4:
         self.board[row][col] = piece
 
     def move_is_valid(self, col):
+        # print(col)
         return self.board[self.rows-1][col] == 0
 
     def get_available_row(self, col):
@@ -162,15 +163,13 @@ class Connect4:
         return s
 
     def train_q_learning(self, qdict):
-        '''Modifie l'attribut winner pour dire quel joueur est vainqueur'''
+        '''Modifies winner attribute'''
         ALPHA = 0.5
         GAMMA = 0.9
         while not self.game_over:
             if self.turn == 0:
-                # Alpha-Beta joue en tant que 1er joueur
+                # Minimax plays here as Player 1
                 col = best_move(self)
-                while not self.move_is_valid(col):
-                    col = best_move(self)
                 row = self.get_available_row(col)
                 self.play_move(row, col, 1)
                 if self.check_wins(1):
@@ -178,72 +177,77 @@ class Connect4:
                     self.winner = 0
                 self.turn = 1 - self.turn
             else:
-                # Choix du coup avec meilleur Q-valeur estimée
+                # Chosen move has the highest q-value
                 state = self.board_to_string()
                 coups = moves(self)
-                fils = Q_children(self)
+                current_children, minimax_moves = Q_children(self)
 
-                m = -np.inf
-                action = 0
-                R = 0
+                max_q_value = -np.inf
+                col_chosen = 0
+                reward = 0
 
                 try:
                     qdict[state]
                 except:
-                    # On rajoute le plateau au dictionnaire
+                    # State gets added to the table
                     qdict[state] = np.random.uniform(-0.01, 0.01)
 
-                # Valeur de l'état sur lequel l'agent se trouve
+                # Current state q-value
                 Q = qdict[state]
 
-                # Tirage aléatoire
+                # Random number to allow some exploitation
                 eps = np.random.uniform(0, 1)
 
                 if eps < 0.1:
                     # Exploration
-                    action = choice(list(coups))
-                    while m == -np.inf:
-                        for i in fils.keys():
+                    col_chosen = choice(list(coups))
+                    # We here look for the maximum q-value among the current state's children
+                    while max_q_value == -np.inf:
+                        for i in current_children.keys():
                             try:
-                                if qdict[fils[i].board_to_string()] > m:
-                                    m = qdict[fils[i].board_to_string()]
+                                if qdict[current_children[i].board_to_string()] > max_q_value:
+                                    max_q_value = qdict[current_children[i].board_to_string(
+                                    )]
                             except:
-                                qdict[fils[i].board_to_string(
+                                qdict[current_children[i].board_to_string(
                                 )] = np.random.uniform(-0.01, 0.01)
                 else:
                     # Exploitation
-                    while m == -np.inf:
-                        for i in fils.keys():
+                    # Here again we look for the maximum q-value among the current state's children
+                    while max_q_value == -np.inf:
+                        for i in current_children.keys():
                             try:
-                                if qdict[fils[i].board_to_string()] > m:
-                                    m = qdict[fils[i].board_to_string()]
-                                    action = int(i)
+                                if qdict[current_children[i].board_to_string()] > max_q_value:
+                                    max_q_value = qdict[current_children[i].board_to_string(
+                                    )]
+                                    col_chosen = int(i)
                             except:
-                                qdict[fils[i].board_to_string(
+                                qdict[current_children[i].board_to_string(
                                 )] = np.random.uniform(-0.01, 0.01)
 
-                Q1 = (1-ALPHA)*Q + ALPHA*(GAMMA*m)
+                previous_q_value = (1-ALPHA)*Q + ALPHA*(GAMMA*max_q_value)
 
-                row = self.get_available_row(action)
-                self.play_move(row, action, 2)
+                # Player 2 plays
+                row = self.get_available_row(col_chosen)
+                self.play_move(row, col_chosen, 2)
                 self.turn = 0
 
                 if self.check_wins(2):
-                    R = 1
+                    reward = 1
                     qdict[state] = (1-ALPHA) * Q + ALPHA
                     self.winner = 1
                     self.game_over = True
                 else:
-                    move = best_move(self)
+                    move = minimax_moves[str(col_chosen)]
                     row = self.get_available_row(move)
                     self.play_move(row, move, 1)
                     self.turn = 1
                     if self.check_wins(1):
                         self.game_over = True
                         self.winner = 0
-                        R = -1
-                        qdict[state] = Q1 + ALPHA*R
+                        reward = -1
+                        qdict[state] = previous_q_value + ALPHA*reward
                 try:
                     self.winner
                 except:
-                    qdict[state] = Q1 + ALPHA*R
+                    qdict[state] = previous_q_value + ALPHA*reward
