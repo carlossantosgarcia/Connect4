@@ -31,7 +31,6 @@ class Connect4:
         self.board[row][col] = piece
 
     def move_is_valid(self, col):
-        # print(col)
         return self.board[self.rows-1][col] == 0
 
     def get_available_row(self, col):
@@ -162,6 +161,11 @@ class Connect4:
                 s += str(int(self.board[row][col]))
         return s
 
+    def string_to_board(self, board_string):
+        for row in range(self.rows):
+            for col in range(self.cols):
+                self.board[row][col] = float(board_string[self.cols*row+col])
+
     def train_q_learning(self, qdict):
         '''Modifies winner attribute'''
         ALPHA = 0.5
@@ -183,7 +187,7 @@ class Connect4:
                 current_children, minimax_moves = Q_children(self)
 
                 max_q_value = -np.inf
-                col_chosen = 0
+                chosen_column = 0
                 reward = 0
 
                 try:
@@ -200,36 +204,36 @@ class Connect4:
 
                 if eps < 0.1:
                     # Exploration
-                    col_chosen = choice(list(coups))
+                    chosen_column = choice(list(coups))
                     # We here look for the maximum q-value among the current state's children
                     while max_q_value == -np.inf:
-                        for i in current_children.keys():
+                        for playable_move in current_children.keys():
                             try:
-                                if qdict[current_children[i].board_to_string()] > max_q_value:
-                                    max_q_value = qdict[current_children[i].board_to_string(
+                                if qdict[current_children[playable_move].board_to_string()] > max_q_value:
+                                    max_q_value = qdict[current_children[playable_move].board_to_string(
                                     )]
                             except:
-                                qdict[current_children[i].board_to_string(
+                                qdict[current_children[playable_move].board_to_string(
                                 )] = np.random.uniform(-0.01, 0.01)
                 else:
                     # Exploitation
                     # Here again we look for the maximum q-value among the current state's children
                     while max_q_value == -np.inf:
-                        for i in current_children.keys():
+                        for playable_move in current_children.keys():
                             try:
-                                if qdict[current_children[i].board_to_string()] > max_q_value:
-                                    max_q_value = qdict[current_children[i].board_to_string(
+                                if qdict[current_children[playable_move].board_to_string()] > max_q_value:
+                                    max_q_value = qdict[current_children[playable_move].board_to_string(
                                     )]
-                                    col_chosen = int(i)
+                                    chosen_column = int(playable_move)
                             except:
-                                qdict[current_children[i].board_to_string(
+                                qdict[current_children[playable_move].board_to_string(
                                 )] = np.random.uniform(-0.01, 0.01)
 
                 previous_q_value = (1-ALPHA)*Q + ALPHA*(GAMMA*max_q_value)
 
                 # Player 2 plays
-                row = self.get_available_row(col_chosen)
-                self.play_move(row, col_chosen, 2)
+                row = self.get_available_row(chosen_column)
+                self.play_move(row, chosen_column, 2)
                 self.turn = 0
 
                 if self.check_wins(2):
@@ -238,7 +242,7 @@ class Connect4:
                     self.winner = 1
                     self.game_over = True
                 else:
-                    move = minimax_moves[str(col_chosen)]
+                    move = minimax_moves[str(chosen_column)]
                     row = self.get_available_row(move)
                     self.play_move(row, move, 1)
                     self.turn = 1
