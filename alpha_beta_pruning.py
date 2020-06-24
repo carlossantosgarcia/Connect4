@@ -63,7 +63,7 @@ def static(Connect4):
 
 
 def children(Connect4):
-    '''Returns a dictionnary { move:obtained_child }'''
+    '''Returns a dictionnary {move:obtained_child}'''
     dict_children = {}
     for col in range(Connect4.cols):
         if Connect4.move_is_valid(col):
@@ -72,7 +72,7 @@ def children(Connect4):
             children_piece = Connect4.turn + 1
             Child.play_move(row, col, children_piece)
             Child.turn = 1 - Connect4.turn
-            if Child.check_wins(children_piece):
+            if Child.check_wins(children_piece) or not moves(Child):
                 Child.game_over = True
             dict_children[str(col)] = Child
     if not dict_children and not Connect4.game_over:
@@ -81,7 +81,7 @@ def children(Connect4):
 
 
 def Q_children(Connect4):
-    '''Returns a dictionnary { move:obtained_child }
+    '''Returns a dictionnary {move:obtained_child}
 
     Takes into account Minimax's move in between.
     '''
@@ -115,9 +115,9 @@ def Q_children(Connect4):
 def moves(Connect4):
     '''Returns an array of available moves from current state'''
     L = set()
-    for i in range(Connect4.cols):
-        if Connect4.move_is_valid(i):
-            L.add(i)
+    for col in range(Connect4.cols):
+        if Connect4.move_is_valid(col):
+            L.add(col)
     if not L:
         Connect4.game_over = True
     return L
@@ -168,15 +168,16 @@ def best_move(Connect4):
             scores = [float('inf')]*Connect4.cols
 
         fils = children(Connect4)
-        for i in fils.keys():
-            scores[int(i)] = minimax(fils[i], 3, -
-                                     float('inf'), float('inf'), fils[i].turn == 0)
+        for playable_move in fils.keys():
+            scores[int(playable_move)] = minimax(fils[playable_move], 3, -float('inf'),
+                                                 float('inf'), not fils[playable_move].turn)
 
         hyp_move = scores.index(max(scores))
 
-        for i in range(Connect4.cols):
-            if i not in coups:
-                scores[i] = float('nan')
+        # Not playable moves get NaN as a score
+        for col in range(Connect4.cols):
+            if col not in coups:
+                scores[col] = float('nan')
 
         if Connect4.turn == 0:
             # Children score is then maximized
@@ -200,7 +201,8 @@ def best_move(Connect4):
                 bug_file.write('Coups: '+str(list(coups))+'\n')
                 bug_file.write('Scores: '+str(scores)+'\n')
                 bug_file.write('Board: '+Connect4.board_to_string()+'\n')
-                bug_file.write('Game Over: ' + str(Connect4.game_over + '\n'))
+                bug_file.write('Game Over: ' + str(Connect4.game_over) + '\n')
+                bug_file.write(' ')
                 bug_file.close()
                 move = choice(list(coups))
                 return move
