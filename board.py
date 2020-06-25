@@ -88,6 +88,7 @@ class Connect4:
         pygame.display.update()
 
     def play(self):
+        '''Allows you to play as Player 2 against Minimax'''
 
         pygame.init()
 
@@ -130,11 +131,13 @@ class Connect4:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
 
-                    # Ask for Player's input
-                    if self.turn == 0:
+                    # Asks for Player's input
+                    if not self.turn:
+                        # Turn = 0
                         pass
 
                     else:
+                        # Turn = 1
                         posx = event.pos[0]
                         col = int(posx/SQUARESIZE)
                         if self.move_is_valid(col):
@@ -155,6 +158,7 @@ class Connect4:
         pygame.time.wait(5000)
 
     def board_to_string(self):
+        ''' Returns ndarray board as string'''
         s = ''
         for row in range(self.rows):
             for col in range(self.cols):
@@ -162,6 +166,7 @@ class Connect4:
         return s
 
     def string_to_board(self, board_string):
+        ''' Transforms board string into ndarray'''
         for row in range(self.rows):
             for col in range(self.cols):
                 self.board[row][col] = float(board_string[self.cols*row+col])
@@ -171,7 +176,7 @@ class Connect4:
         ALPHA = 0.5
         GAMMA = 0.9
         while not self.game_over:
-            if self.turn == 0:
+            if not self.turn:
                 # Minimax plays here as Player 1
                 col = best_move(self)
                 row = self.get_available_row(col)
@@ -255,3 +260,86 @@ class Connect4:
                     self.winner
                 except:
                     qdict[state] = previous_q_value + ALPHA*reward
+
+    def vs_q_play(self, qdict):
+        ''' Allows you to play as Player 1 against our trained model'''
+        pygame.init()
+
+        width = self.cols * SQUARESIZE
+        height = (self.rows+1) * SQUARESIZE
+        size = (width, height)
+
+        screen = pygame.display.set_mode(size)
+        self.draw_board(screen)
+        pygame.display.update()
+
+        myfont = pygame.font.Font('sweet purple.ttf', 75)
+
+        while not self.game_over:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
+                if event.type == pygame.MOUSEMOTION:
+                    pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+                    posx = event.pos[0]
+                    if self.turn == 1:
+                        children_dict = Q_children(self)[0]
+                        col = 0
+                        max_q = -np.inf
+
+                        while max_q == -np.inf:
+                            for move in children_dict.keys():
+                                try:
+                                    score = qdict[children_dict[move].board_to_string(
+                                    )]
+                                    if score > max_q:
+                                        col = int(move)
+                                        max_q = score
+                                except:
+                                    if max_q == -np.inf:
+                                        col = choice(list(moves(self)))
+                                        max_q = -100
+                        row = self.get_available_row(col)
+                        self.play_move(row, col, 2)
+
+                        if self.check_wins(2):
+                            label = myfont.render("Q-Agent wins!", 1, YELLOW)
+                            screen.blit(label, (width/4, 10))
+                            self.game_over = True
+                            self.draw_board(screen)
+                            break
+                        self.draw_board(screen)
+                        self.turn = 1 - self.turn
+
+                    else:
+                        pygame.draw.circle(
+                            screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
+                    pygame.display.update()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+
+                    # Asks for Player's input
+                    if self.turn:
+                        pass
+
+                    else:
+                        # Turn = 0
+                        posx = event.pos[0]
+                        col = int(posx/SQUARESIZE)
+                        if self.move_is_valid(col):
+                            row = self.get_available_row(col)
+                            self.play_move(row, col, 1)
+
+                            if self.check_wins(1):
+                                label = myfont.render(
+                                    "Player 1 wins!", 1, RED)
+                                screen.blit(label, (width/4, 10))
+                                self.game_over = True
+                                self.draw_board(screen)
+                                break
+
+                        self.draw_board(screen)
+                        self.turn = 1 - self.turn
+
+        pygame.time.wait(5000)
