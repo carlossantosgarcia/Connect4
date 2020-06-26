@@ -19,12 +19,12 @@ Permet une recherche arborescente à profondeur fixée pour trouver le meilleur 
 
 ## Q-learning
 On a ici considéré un agent 1 qui commence à jouer et joue en suivant l'algorithme d'élagage Alpha-Bêta contre un agent 2 qui actualise sa table de données stockée sous forme de fichier csv. Pour cela, il s'appuie sur la fonction _Q_children_ qui prend en compte le coup de l'agent 1 entre chaque coup de l'agent 2 pour passer d'un état où l'agent doit jouer au suivant. L'idée était ici que l'agent 2 apprenne à jouer contre l'agent 1 et finisse par battre Minimax.
-La fonction _train_q_learning_ permet aux deux agents de jouer. Le script **_q_learning.py_** permet de mettre à jour le dernier fichier csv qui enregistre les différents par lesquels le jeu est passé: le fichier est composé d'une colonne de 'states', ie. les différents plateaux du jeu transformés en string, ainsi qu'une colonne avec leurs différents 'scores' qui sont mis à jour. Par exemple:
+La fonction _train_q_learning_ permet aux deux agents de jouer. Le script **_q_learning.py_** permet de mettre à jour le dernier fichier csv qui enregistre les différents par lesquels le jeu est passé: le fichier est composé d'une colonne de 'states', ie. les différents plateaux du jeu transformés en string, ainsi qu'une colonne avec leurs différents listes de 'scores' qui sont mis à jour, et qui représentent, pour l'indice `i`, la valeur de jouer l'action `i` à l'état donné. Voici à quoi ressemble cette table:
 
 | States | Scores |
 | ----- | -----: |
-|201210020221000011000001000000000000000000|0.3|
-|201210000221000011200001000000000000000000|0.1|
-|201110200000000000000000000000000000000000|-0.7|
+|201210020221000011000001000000000000000000|[0, 0, 0.03656, 0, 0, 0, 0]|
+|201210000221000011200001000000000000000000|[0, 0, -1, 0, -1, 0, 0]|
+|201110200000000000000000000000000000000000|[0, -1, 0, 0.0465, 0, 0, 0]|
 
-Le fichier`q_learning_server.py` a été conçu pour être executé dans le cloud, et enregistrer les données toutes les X parties. Le fichier `games.csv` permet de suivre le nombre de parties effectuées. Les dernières données accessibles des parties sont dans le fichier `q_table.csv`.
+Le fichier`cloud_training.py` a été conçu pour entraîner notre agent, et enregistrer les données toutes les `GAMES` parties. Le fichier `games.csv` permet de suivre le nombre de parties effectuées, pourcentages de victoires, durées d'entraînement.... Les dernières données accessibles des parties sont dans le fichier `q_learning_table.csv`.
