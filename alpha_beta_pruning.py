@@ -4,6 +4,17 @@ import matplotlib.pyplot as plt
 from random import randint, choice
 
 
+def moves(Connect4):
+    '''Returns an array of available moves from current state'''
+    L = set()
+    for col in range(Connect4.cols):
+        if Connect4.move_is_valid(col):
+            L.add(col)
+    if not L:
+        Connect4.game_over = True
+    return L
+
+
 def static(Connect4):
     '''Evalue statiquement un plateau de jeu'''
     S = 0
@@ -65,66 +76,53 @@ def static(Connect4):
 def children(Connect4):
     '''Returns a dictionnary {move:obtained_child}'''
     dict_children = {}
-    for col in range(Connect4.cols):
-        if Connect4.move_is_valid(col):
-            Child = copy.deepcopy(Connect4)
-            row = Child.get_available_row(col)
-            children_piece = Connect4.turn + 1
-            Child.play_move(row, col, children_piece)
-            Child.turn = 1 - Connect4.turn
-            if Child.check_wins(children_piece) or not moves(Child):
-                Child.game_over = True
-            dict_children[str(col)] = Child
+    for col in moves(Connect4):
+        Child = copy.deepcopy(Connect4)
+        row = Child.get_available_row(col)
+        children_piece = Connect4.turn + 1
+        Child.play_move(row, col, children_piece)
+        Child.turn = 1 - Connect4.turn
+        if Child.check_wins(children_piece) or not moves(Child):
+            Child.game_over = True
+        dict_children[str(col)] = Child
     if not dict_children and not Connect4.game_over:
         Connect4.game_over = True
     return dict_children
 
 
 def Q_children(Connect4):
-    '''Returns a dictionnary {move:obtained_child}
+    '''Returns two dictionnaries: {move:obtained_child} and {move:minimax's_move}
 
-    Takes into account Minimax's move in between.
+    Takes into account Minimax's move.
     '''
     dict_children = {}
     minimax_moves = {}
-    for col in range(Connect4.cols):
-        if Connect4.move_is_valid(col):
-            Child = copy.deepcopy(Connect4)
-            row = Child.get_available_row(col)
-            children_piece = Connect4.turn + 1
-            Child.play_move(row, col, children_piece)
+    for col in moves(Connect4):
+        Child = copy.deepcopy(Connect4)
+        row = Child.get_available_row(col)
+        children_piece = Connect4.turn + 1
+        Child.play_move(row, col, children_piece)
+        Child.turn = 1 - Connect4.turn
+        if Child.check_wins(children_piece) or not moves(Child):
+            Child.game_over = True
+        else:
+            col2 = best_move(Child)
+            minimax_moves[str(col)] = col2
+            row2 = Child.get_available_row(col2)
+            piece = Child.turn + 1
+            Child.play_move(row2, col2, piece)
             Child.turn = 1 - Connect4.turn
-            if Child.check_wins(children_piece):
+            if Child.check_wins(piece) or not moves(Child):
                 Child.game_over = True
-            else:
-                col2 = best_move(Child)
-                minimax_moves[str(col)] = col2
-                row2 = Child.get_available_row(col2)
-                piece = Child.turn + 1
-                Child.play_move(row2, col2, piece)
-                Child.turn = 1 - Connect4.turn
-                if Child.check_wins(piece):
-                    Child.game_over = True
 
-            dict_children[str(col)] = Child
+        dict_children[str(col)] = Child
     if not dict_children and not Connect4.game_over:
         Connect4.game_over = True
     return dict_children, minimax_moves
 
 
-def moves(Connect4):
-    '''Returns an array of available moves from current state'''
-    L = set()
-    for col in range(Connect4.cols):
-        if Connect4.move_is_valid(col):
-            L.add(col)
-    if not L:
-        Connect4.game_over = True
-    return L
-
-
 def minimax(Connect4, depth, alpha, beta, maximizingPlayer=None):
-    '''Returns best possible score obtained from the root'''
+    '''Returns best possible score obtainable from the root'''
     if maximizingPlayer == None:
         if not Connect4.turn:
             maximizingPlayer = True

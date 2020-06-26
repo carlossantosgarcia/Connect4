@@ -1,11 +1,12 @@
 import numpy as np
+import pandas as pd
 import pygame
 import sys
-import math
-import pandas as pd
 import time
+from copy import deepcopy
 from alpha_beta_pruning import static, children, moves, minimax, best_move, moves, Q_children
 from random import choice
+
 
 # Constants
 BLUE = (0, 0, 255)
@@ -177,89 +178,101 @@ class Connect4:
         GAMMA = 0.9
         while not self.game_over:
             if not self.turn:
-                # Minimax plays here as Player 1
+                # Minimax plays as Player 1
                 col = best_move(self)
                 row = self.get_available_row(col)
                 self.play_move(row, col, 1)
                 if self.check_wins(1):
                     self.game_over = True
                     self.winner = 0
-                self.turn = 1 - self.turn
+                self.turn = 1
             else:
                 # Chosen move has the highest q-value
                 state = self.board_to_string()
                 coups = moves(self)
-                current_children, minimax_moves = Q_children(self)
+                minimax_moves = Q_children(self)[1]
 
                 max_q_value = -np.inf
                 chosen_column = 0
-                reward = 0
 
                 try:
                     qdict[state]
                 except:
                     # State gets added to the table
-                    qdict[state] = np.random.uniform(-0.01, 0.01)
+                    qdict[state] = [0]*self.cols
 
                 # Current state q-value
-                Q = qdict[state]
-
+                Q_list = deepcopy(qdict[state])
                 # Random number to allow some exploitation
                 eps = np.random.uniform(0, 1)
 
                 if eps < 0.1:
                     # Exploration
                     chosen_column = choice(list(coups))
-                    # We here look for the maximum q-value among the current state's children
-                    while max_q_value == -np.inf:
-                        for playable_move in current_children.keys():
-                            try:
-                                if qdict[current_children[playable_move].board_to_string()] > max_q_value:
-                                    max_q_value = qdict[current_children[playable_move].board_to_string(
-                                    )]
-                            except:
-                                qdict[current_children[playable_move].board_to_string(
-                                )] = np.random.uniform(-0.01, 0.01)
                 else:
                     # Exploitation
-                    # Here again we look for the maximum q-value among the current state's children
-                    while max_q_value == -np.inf:
-                        for playable_move in current_children.keys():
-                            try:
-                                if qdict[current_children[playable_move].board_to_string()] > max_q_value:
-                                    max_q_value = qdict[current_children[playable_move].board_to_string(
-                                    )]
-                                    chosen_column = int(playable_move)
-                            except:
-                                qdict[current_children[playable_move].board_to_string(
-                                )] = np.random.uniform(-0.01, 0.01)
+                    for col in range(self.cols):
+                        if col not in coups:
+                            Q_list[col] = -np.inf
+                    chosen_column = Q_list.index(max(Q_list))
 
-                previous_q_value = (1-ALPHA)*Q + ALPHA*(GAMMA*max_q_value)
+                previous_q_value = (1-ALPHA)*Q_list[chosen_column]
 
-                # Player 2 plays
+                # Q-Agent plays
                 row = self.get_available_row(chosen_column)
                 self.play_move(row, chosen_column, 2)
                 self.turn = 0
 
                 if self.check_wins(2):
-                    reward = 1
-                    qdict[state] = (1-ALPHA) * Q + ALPHA
+                    # Checks for Q-Agent's victory
+                    qdict[state][chosen_column] = 1
                     self.winner = 1
                     self.game_over = True
+                elif not minimax_moves:
+                    self.game_over = True
+                    reward = 1/42
+                    update_value = previous_q_value + ALPHA*reward
+                    qdict[state][chosen_column] = float(f'{update_value:.5f}')
                 else:
-                    move = minimax_moves[str(chosen_column)]
+                    try:
+                        move = minimax_moves[str(chosen_column)]
+                    except:
+                        self.print_board()
+                        print('Coups', coups)
+                        print('Minimax moves', minimax_moves)
+                        print('Game over', self.game_over)
+                        print('Chosen column', chosen_column,
+                              type(chosen_column))
+                        bug_file = open('bug_reports.txt', 'a')
+                        bug_file.write('Coups: '+str(list(coups))+'\n')
+                        bug_file.write(
+                            'Scores: '+str(list(minimax_moves))+'\n')
+                        bug_file.write(
+                            'Board: '+Connect4.board_to_string()+'\n')
+                        bug_file.write('Game Over: ' +
+                                       str(self.game_over) + '\n')
+                        bug_file.write(' ')
+                        bug_file.close()
                     row = self.get_available_row(move)
                     self.play_move(row, move, 1)
                     self.turn = 1
                     if self.check_wins(1):
-                        self.game_over = True
+                        # Checks for Minimax's victory
+                        qdict[state][chosen_column] = -1
                         self.winner = 0
-                        reward = -1
-                        qdict[state] = previous_q_value + ALPHA*reward
-                try:
-                    self.winner
-                except:
-                    qdict[state] = previous_q_value + ALPHA*reward
+                        self.game_over = True
+                    else:
+                        # Computes the estimate of optimal future value
+                        try:
+                            max_q_value = max(
+                                [qdict[self.board_to_string()][col] for col in moves(self)])
+                        except:
+                            qdict[state] = [0]*self.cols
+                            max_q_value = 0
+                        reward = 1/42
+                        update_value = previous_q_value + ALPHA*reward + ALPHA*GAMMA*max_q_value
+                        qdict[state][chosen_column] = float(
+                            f'{update_value:.5f}')
 
     def vs_q_play(self, qdict):
         ''' Allows you to play as Player 1 against our trained model'''
@@ -283,22 +296,14 @@ class Connect4:
                     pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
                     posx = event.pos[0]
                     if self.turn == 1:
-                        children_dict = Q_children(self)[0]
-                        col = 0
-                        max_q = -np.inf
+                        state = self.board_to_string()
 
-                        while max_q == -np.inf:
-                            for move in children_dict.keys():
-                                try:
-                                    score = qdict[children_dict[move].board_to_string(
-                                    )]
-                                    if score > max_q:
-                                        col = int(move)
-                                        max_q = score
-                                except:
-                                    if max_q == -np.inf:
-                                        col = choice(list(moves(self)))
-                                        max_q = -100
+                        try:
+                            score = qdict[state]
+                            col = score.index(max(score))
+                        except:
+                            col = choice(list(moves(self)))
+
                         row = self.get_available_row(col)
                         self.play_move(row, col, 2)
 
