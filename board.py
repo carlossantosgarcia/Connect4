@@ -1,12 +1,14 @@
-import numpy as np
-import pandas as pd
-import pygame
-import sys
-import time
 from copy import deepcopy
-from alpha_beta_pruning import static, children, moves, minimax, best_move, moves, Q_children
 from random import choice
-
+from sys import exit as sys_exit
+from numpy import NINF, flip, random, zeros
+from pygame import MOUSEBUTTONDOWN, MOUSEMOTION, QUIT, display, draw
+from pygame import event as pygame_event
+from pygame import font
+from pygame import init as pygame_init
+from pygame import time as pygame_time
+from alpha_beta_pruning import (Q_children, best_move, children, minimax,
+                                moves, static)
 
 # Constants
 BLUE = (0, 0, 255)
@@ -18,12 +20,12 @@ RADIUS = int(SQUARESIZE/2 - 5)
 
 
 class Connect4:
-    ''' Some methods assume that the board has a 6x7 size'''
+    '''Some methods assume that the board has a 6x7 size'''
 
     def __init__(self, nb_rows=6, nb_cols=7):
         self.rows = nb_rows
         self.cols = nb_cols
-        self.board = np.zeros((nb_rows, nb_cols))
+        self.board = zeros((nb_rows, nb_cols))
         self.game_over = False
         self.turn = 0
         self.winner = None
@@ -41,7 +43,7 @@ class Connect4:
 
     def print_board(self):
         '''Flips the board to match the real game'''
-        print(np.flip(self.board, 0))
+        print(flip(self.board, 0))
 
     def check_wins(self, piece):
         # Check horizontal locations for win
@@ -73,42 +75,42 @@ class Connect4:
 
         for c in range(self.cols):
             for r in range(self.rows):
-                pygame.draw.rect(
+                draw.rect(
                     screen, BLUE, (c*SQUARESIZE, r*SQUARESIZE+SQUARESIZE, SQUARESIZE, SQUARESIZE))
-                pygame.draw.circle(screen, BLACK, (int(
+                draw.circle(screen, BLACK, (int(
                     c*SQUARESIZE+SQUARESIZE/2), int(r*SQUARESIZE+SQUARESIZE+SQUARESIZE/2)), RADIUS)
 
         for c in range(self.cols):
             for r in range(self.rows):
                 if self.board[r][c] == 1:
-                    pygame.draw.circle(screen, RED, (int(
+                    draw.circle(screen, RED, (int(
                         c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
                 elif self.board[r][c] == 2:
-                    pygame.draw.circle(screen, YELLOW, (int(
+                    draw.circle(screen, YELLOW, (int(
                         c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
-        pygame.display.update()
+        display.update()
 
     def play(self):
         '''Allows you to play as Player 2 against Minimax'''
 
-        pygame.init()
+        pygame_init()
 
         width = self.cols * SQUARESIZE
         height = (self.rows+1) * SQUARESIZE
         size = (width, height)
 
-        screen = pygame.display.set_mode(size)
+        screen = display.set_mode(size)
         self.draw_board(screen)
-        pygame.display.update()
+        display.update()
 
-        myfont = pygame.font.Font('sweet purple.ttf', 75)
+        myfont = font.Font('sweet purple.ttf', 75)
 
         while not self.game_over:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    sys.exit()
-                if event.type == pygame.MOUSEMOTION:
-                    pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+            for event in pygame_event.get():
+                if event.type == QUIT:
+                    sys_exit()
+                if event.type == MOUSEMOTION:
+                    draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
                     posx = event.pos[0]
                     if self.turn == 0:
                         col = best_move(self)
@@ -116,7 +118,7 @@ class Connect4:
                         self.play_move(row, col, 1)
 
                         if self.check_wins(1):
-                            label = myfont.render("Player 1 wins!", 1, RED)
+                            label = myfont.render("Minimax wins!", 1, RED)
                             screen.blit(label, (width/4, 10))
                             self.game_over = True
                             self.draw_board(screen)
@@ -125,12 +127,12 @@ class Connect4:
                         self.turn = 1 - self.turn
 
                     else:
-                        pygame.draw.circle(
+                        draw.circle(
                             screen, YELLOW, (posx, int(SQUARESIZE/2)), RADIUS)
-                    pygame.display.update()
+                    display.update()
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+                if event.type == MOUSEBUTTONDOWN:
+                    draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
 
                     # Asks for Player's input
                     if not self.turn:
@@ -147,7 +149,7 @@ class Connect4:
 
                             if self.check_wins(2):
                                 label = myfont.render(
-                                    "Player 2 wins!", 1, YELLOW)
+                                    "Player wins!", 1, YELLOW)
                                 screen.blit(label, (width/4, 10))
                                 self.game_over = True
                                 self.draw_board(screen)
@@ -156,14 +158,16 @@ class Connect4:
                         self.draw_board(screen)
                         self.turn = 1 - self.turn
 
-        pygame.time.wait(5000)
+        pygame_time.wait(5000)
 
     def board_to_string(self):
         ''' Returns ndarray board as string'''
         s = ''
+
         for row in range(self.rows):
             for col in range(self.cols):
                 s += str(int(self.board[row][col]))
+
         return s
 
     def string_to_board(self, board_string):
@@ -192,7 +196,7 @@ class Connect4:
                 coups = moves(self)
                 minimax_moves = Q_children(self)[1]
 
-                max_q_value = -np.inf
+                max_q_value = NINF
                 chosen_column = 0
 
                 try:
@@ -204,7 +208,7 @@ class Connect4:
                 # Current state q-value
                 Q_list = deepcopy(qdict[state])
                 # Random number to allow some exploitation
-                eps = np.random.uniform(0, 1)
+                eps = random.uniform(0, 1)
 
                 if eps < 0.1:
                     # Exploration
@@ -213,7 +217,7 @@ class Connect4:
                     # Exploitation
                     for col in range(self.cols):
                         if col not in coups:
-                            Q_list[col] = -np.inf
+                            Q_list[col] = NINF
                     chosen_column = Q_list.index(max(Q_list))
 
                 previous_q_value = (1-ALPHA)*Q_list[chosen_column]
@@ -275,25 +279,25 @@ class Connect4:
                             f'{update_value:.5f}')
 
     def vs_q_play(self, qdict):
-        ''' Allows you to play as Player 1 against our trained model'''
-        pygame.init()
+        '''Allows you to play as Player 1 against our trained model'''
+        pygame_init()
 
         width = self.cols * SQUARESIZE
         height = (self.rows+1) * SQUARESIZE
         size = (width, height)
 
-        screen = pygame.display.set_mode(size)
+        screen = display.set_mode(size)
         self.draw_board(screen)
-        pygame.display.update()
+        display.update()
 
-        myfont = pygame.font.Font('sweet purple.ttf', 75)
+        myfont = font.Font('sweet purple.ttf', 75)
 
         while not self.game_over:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    sys.exit()
-                if event.type == pygame.MOUSEMOTION:
-                    pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+            for event in pygame_event.get():
+                if event.type == QUIT:
+                    sys_exit()
+                if event.type == MOUSEMOTION:
+                    draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
                     posx = event.pos[0]
                     if self.turn == 1:
                         state = self.board_to_string()
@@ -317,12 +321,12 @@ class Connect4:
                         self.turn = 1 - self.turn
 
                     else:
-                        pygame.draw.circle(
+                        draw.circle(
                             screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
-                    pygame.display.update()
+                    display.update()
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+                if event.type == MOUSEBUTTONDOWN:
+                    draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
 
                     # Asks for Player's input
                     if self.turn:
@@ -338,7 +342,7 @@ class Connect4:
 
                             if self.check_wins(1):
                                 label = myfont.render(
-                                    "Player 1 wins!", 1, RED)
+                                    "Player wins!", 1, RED)
                                 screen.blit(label, (width/4, 10))
                                 self.game_over = True
                                 self.draw_board(screen)
@@ -347,4 +351,4 @@ class Connect4:
                         self.draw_board(screen)
                         self.turn = 1 - self.turn
 
-        pygame.time.wait(5000)
+        pygame_time.wait(5000)
