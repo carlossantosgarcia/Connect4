@@ -176,7 +176,7 @@ class Connect4:
             for col in range(self.cols):
                 self.board[row][col] = float(board_string[self.cols*row+col])
 
-    def train_q_learning(self, qdict):
+    def train_q_learning(self, qdict, eps_0):
         '''Modifies winner attribute'''
         ALPHA = 0.5
         GAMMA = 0.9
@@ -210,7 +210,7 @@ class Connect4:
                 # Random number to allow some exploitation
                 eps = random.uniform(0, 1)
 
-                if eps < 0.1:
+                if eps < eps_0:
                     # Exploration
                     chosen_column = choice(list(coups))
                 else:
