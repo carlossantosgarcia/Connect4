@@ -160,46 +160,46 @@ def best_move(Connect4):
         coups = moves(Connect4)
         eps = uniform(0, 1)
         if eps < 0.2:
-            return choice(list(coups)
+            return choice(list(coups))
         else:
             if not Connect4.turn:
                 # Turn = 0
-                scores=[-float('inf')]*Connect4.cols
+                scores = [-float('inf')]*Connect4.cols
             else:
                 # Turn = 1
-                scores=[float('inf')]*Connect4.cols
+                scores = [float('inf')]*Connect4.cols
 
-            fils=children(Connect4)
+            fils = children(Connect4)
             for playable_move in fils.keys():
-                scores[int(playable_move)]=minimax(fils[playable_move], 3, -float('inf'),
+                scores[int(playable_move)] = minimax(fils[playable_move], 3, -float('inf'),
                                                      float('inf'), not fils[playable_move].turn)
 
-            hyp_move=scores.index(max(scores))
+            hyp_move = scores.index(max(scores))
 
             # Not playable moves get NaN as a score
             for col in range(Connect4.cols):
                 if col not in coups:
-                    scores[col]=float('nan')
+                    scores[col] = float('nan')
 
             if Connect4.turn == 0:
                 # Children score is then maximized
                 if abs(np.nanmean(scores)) != float('inf'):
                     if max(scores) == int(np.nanmean(scores)):
                         if not max(scores) and 3 in coups:
-                            move=3
+                            move = 3
                             return move
                         else:
-                            move=choice(list(coups))
+                            move = choice(list(coups))
                             return move
                     else:
-                        move=hyp_move
+                        move = hyp_move
                         return move
                 else:
                     Connect4.print_board()
                     print('Coups', coups)
                     print('Scores', scores)
                     print('Game over', Connect4.game_over)
-                    bug_file=open('bug_reports.txt', 'a')
+                    bug_file = open('bug_reports.txt', 'a')
                     bug_file.write('Coups: '+str(list(coups))+'\n')
                     bug_file.write('Scores: '+str(scores)+'\n')
                     bug_file.write('Board: '+Connect4.board_to_string()+'\n')
@@ -207,9 +207,9 @@ def best_move(Connect4):
                                    str(Connect4.game_over) + '\n')
                     bug_file.write(' ')
                     bug_file.close()
-                    move=choice(list(coups))
+                    move = choice(list(coups))
                     return move
             else:
                 # Children score is minimized
-                move=scores.index(min(scores))
+                move = scores.index(min(scores))
                 return move
