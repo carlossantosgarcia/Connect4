@@ -39,7 +39,7 @@ while True:
     if games < 15000:
         eps_0 = 0.3
     else:
-        eps_0 = 0.1
+        eps_0 = -1
 
     for i in range(1, GAMES + 1):
 
