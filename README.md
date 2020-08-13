@@ -9,10 +9,14 @@ Pour jouer une partie de puissance 4 contre l'IA utilisant l'élagage Alpha-Bêt
 ```python
 python play_connect_4.py
 ```
+Pour jouer une partie de puissance 4 contre l'agent entraîné au Q-learning:
+```python
+python play_vs_q_agent.py
+```
 
 # Organisation du projet
-## Classe Connect4()
-Il s'agit de la classe principale du projet, ses attributs principaux sont le plateau de jeu (_board_), ses dimensions et lequel des joueurs doit jouer (_turn_). Les méthodes de la classe permettent de joueur au jeu.
+## Classe Connect4
+Il s'agit de la classe principale du projet, ses attributs principaux sont le plateau de jeu (_board_), ses dimensions et lequel des joueurs doit jouer (_turn_). Les méthodes de la classe permettent le déroulement d'une partie.
 
 ## Algorithme d'élagage Alpha-Bêta
 Permet une recherche arborescente à profondeur fixée pour trouver le meilleur coup de l'agent. La fonction _best_move_ l'implémente dans le cas de Puissance 4.
