@@ -212,6 +212,7 @@ class Connect4:
 
                 if eps < eps_0:
                     # Exploration
+                    hasExplored = True
                     chosen_column = choice(list(coups))
                 else:
                     # Exploitation
@@ -235,28 +236,12 @@ class Connect4:
                 elif not minimax_moves:
                     self.game_over = True
                     reward = 1/42
-                    update_value = previous_q_value + ALPHA*reward
-                    qdict[state][chosen_column] = float(f'{update_value:.5f}')
+                    if not hasExplored:
+                        update_value = previous_q_value + ALPHA*reward
+                        qdict[state][chosen_column] = float(
+                            f'{update_value:.5f}')
                 else:
-                    try:
-                        move = minimax_moves[str(chosen_column)]
-                    except:
-                        self.print_board()
-                        print('Coups', coups)
-                        print('Minimax moves', minimax_moves)
-                        print('Game over', self.game_over)
-                        print('Chosen column', chosen_column,
-                              type(chosen_column))
-                        bug_file = open('bug_reports.txt', 'a')
-                        bug_file.write('Coups: '+str(list(coups))+'\n')
-                        bug_file.write(
-                            'Scores: '+str(list(minimax_moves))+'\n')
-                        bug_file.write(
-                            'Board: '+Connect4.board_to_string()+'\n')
-                        bug_file.write('Game Over: ' +
-                                       str(self.game_over) + '\n')
-                        bug_file.write(' ')
-                        bug_file.close()
+                    move = minimax_moves[str(chosen_column)]
                     row = self.get_available_row(move)
                     self.play_move(row, move, 1)
                     self.turn = 1
@@ -274,9 +259,10 @@ class Connect4:
                             qdict[state] = [0]*self.cols
                             max_q_value = 0
                         reward = 1/42
-                        update_value = previous_q_value + ALPHA*reward + ALPHA*GAMMA*max_q_value
-                        qdict[state][chosen_column] = float(
-                            f'{update_value:.5f}')
+                        if not hasExplored:
+                            update_value = previous_q_value + ALPHA*reward + ALPHA*GAMMA*max_q_value
+                            qdict[state][chosen_column] = float(
+                                f'{update_value:.5f}')
 
     def vs_q_play(self, qdict):
         '''Allows you to play as Player 1 against our trained model'''
