@@ -181,6 +181,7 @@ class Connect4:
         ALPHA = 0.5
         GAMMA = 0.9
         while not self.game_over:
+            hasExplored = False
             if not self.turn:
                 # Minimax plays as Player 1
                 col = best_move(self)
